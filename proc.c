@@ -10,7 +10,61 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
+  struct proc *pReadyList;
+  struct proc *pFreeList;
 } ptable;
+
+
+////ADD TO FREE LIST
+int
+AddFreeList(struct proc * toadd)
+{
+
+//empty argument
+if(toadd == 0)
+return -1;
+
+///first free list process
+if(ptable.pFreeList == 0)
+{
+ptable.pFreeList=toadd;
+toadd->next = 0;
+return 0;
+}
+
+///all other cases
+struct proc * restoflist=ptable.pFreeList;
+ptable.pFreeList=toadd;
+ptable.pFreeList->next=restoflist;
+
+return 0;
+}
+
+////
+
+
+////REMOVE FREE LIST
+struct proc *
+RemoveFreeList()
+{
+
+
+///first free list process
+if(ptable.pFreeList == 0)
+return ptable.pFreeList;
+
+///all other cases
+struct proc * p = ptable.pFreeList;
+ptable.pFreeList = ptable.pFreeList->next;//remove first process from list change pointer
+return p;
+}
+
+////
+
+
+
+
+
 
 static struct proc *initproc;
 
@@ -19,6 +73,8 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+
+
 
 void
 pinit(void)
@@ -34,17 +90,20 @@ pinit(void)
 static struct proc*
 allocproc(void)
 {
-  struct proc *p;
+  //struct proc *p;
   char *sp;
 
   acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
-      goto found;
+  
+  struct proc *p=RemoveFreeList();
+  
   release(&ptable.lock);
-  return 0;
+  
+  if(p == 0)
+	return 0;
 
-found:
+  acquire(&ptable.lock);
+
   p->state = EMBRYO;
   p->pid = nextpid++;
   //p->gid = nextpid; 
@@ -81,7 +140,21 @@ found:
 void
 userinit(void)
 {
-  struct proc *p;
+  struct proc* p;
+
+  ptable.pFreeList=0;
+  
+
+
+acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state == UNUSED)
+      {
+	AddFreeList(p); //send unused process to free table to be added
+	}
+  release(&ptable.lock);
+
+  //struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
   
   p = allocproc();
