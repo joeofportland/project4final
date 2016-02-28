@@ -10,7 +10,7 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  struct proc *pReadyList;
+  struct proc *pReadyList[2];
   struct proc *pFreeList;
 } ptable;
 
@@ -63,6 +63,66 @@ return p;
 
 
 
+////ADD READY LIST
+int
+AddReadyList(struct proc * toadd)
+{
+if(toadd->state != RUNNABLE)
+return -1;
+
+//int priority = toadd->priority;
+int priority = 0;
+
+if(ptable.pReadyList[priority]==0)
+{
+ptable.pReadyList[priority]=toadd;
+ptable.pReadyList[priority]->next=0;
+return 0;
+}
+
+struct proc * temp = ptable.pReadyList[priority];
+
+while(temp->next !=0)
+temp=temp->next;
+
+toadd->next=0;
+temp->next=toadd;
+
+return 0;
+}
+
+////
+
+
+////REMOVE READY LIST
+int
+RemoveReadyList(struct proc * toremove)
+{
+
+
+int priority = toremove->priority;
+if(ptable.pReadyList[priority]==0)
+return -1;
+
+if(ptable.pReadyList[priority]->next==0)
+{
+ptable.pReadyList[priority]=0;
+return 0;
+}
+
+struct proc * current = ptable.pReadyList[priority];
+struct proc * prev;
+
+while(current !=toremove)
+{
+prev=current;
+current=current->next;
+}
+prev->next=current->next;
+return 0;
+}
+
+////
 
 
 
@@ -179,6 +239,10 @@ acquire(&ptable.lock);
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+acquire(&ptable.lock);
+AddReadyList(p);
+release(&ptable.lock);
+
 }
 
 // Grow current process's memory by n bytes.
@@ -245,6 +309,7 @@ fork(void)
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
+  AddReadyList(np);
   release(&ptable.lock);
   
   return pid;
@@ -367,6 +432,7 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      RemoveReadyList(p);
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
 
@@ -406,6 +472,7 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
   sched();
+  AddReadyList(proc);
   release(&ptable.lock);
 }
 
@@ -478,6 +545,9 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
+
+
+
 }
 
 // Wake up all processes sleeping on chan.
@@ -503,7 +573,6 @@ kill(int pid)
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
-        p->state = RUNNABLE;
       release(&ptable.lock);
       return 0;
     }

@@ -60,6 +60,7 @@ struct proc {
   int pid;                     // Process ID
   int uid;                     // User ID
   int gid;                     // Group ID
+  int priority;                     // priority num (0-2)
   struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process
