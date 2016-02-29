@@ -70,8 +70,8 @@ AddReadyList(struct proc * toadd)
 if(toadd->state != RUNNABLE)
 return -1;
 
-//int priority = toadd->priority;
-int priority = 0;
+int priority = toadd->priority;
+//int priority = 0;
 
 if(ptable.pReadyList[priority]==0)
 {
@@ -124,6 +124,25 @@ return 0;
 
 ////
 
+
+////give scheduleer next proccess to run
+struct proc* GetReady()
+{
+
+//if(ptable.pReadyList[0]==0 && ptable.pReadyList[1]==0 && ptable.pReadyList[2]==0)
+//return ptable.pReadyList[0];
+
+int p=0;
+for(;p < 2; p++){
+if(ptable.pReadyList[p]!=0)
+return ptable.pReadyList[p];
+}
+
+return ptable.pReadyList[0];
+}
+
+
+/////
 
 
 static struct proc *initproc;
@@ -220,6 +239,7 @@ acquire(&ptable.lock);
   p = allocproc();
   p->uid=0;
   p->gid=1;
+  p->priority=1;
 
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
@@ -292,6 +312,7 @@ fork(void)
 ///allocating uid and gid
   np->uid = proc->uid;
   np->gid = proc->gid;
+  np->priority = proc->priority;
 
 
   // Clear %eax so that fork returns 0 in the child.
