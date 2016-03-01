@@ -10,7 +10,7 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  struct proc *pReadyList[2];
+  struct proc *pReadyList[3];
   struct proc *pFreeList;
 } ptable;
 
@@ -88,6 +88,7 @@ temp=temp->next;
 toadd->next=0;
 temp->next=toadd;
 
+//ptable.pReadyList[priority]=temp;
 return 0;
 }
 
@@ -108,6 +109,12 @@ if(ptable.pReadyList[priority]->next==0)
 {
 ptable.pReadyList[priority]=0;
 return 0;
+}
+    
+if(ptable.pReadyList[priority]==toremove)
+{
+    ptable.pReadyList[priority]=ptable.pReadyList[priority]->next;
+    return 0;
 }
 
 struct proc * current = ptable.pReadyList[priority];
@@ -133,12 +140,12 @@ struct proc* GetReady()
 //return ptable.pReadyList[0];
 
 int p=0;
-for(;p < 2; p++){
-if(ptable.pReadyList[p]!=0)
-return ptable.pReadyList[p];
+for(p = 0;p < 3; p++){
+    if(ptable.pReadyList[p]!=0)
+        return ptable.pReadyList[p];
 }
 
-return ptable.pReadyList[0];
+return 0;
 }
 
 
@@ -176,12 +183,13 @@ allocproc(void)
   
   struct proc *p=RemoveFreeList();
   
-  release(&ptable.lock);
   
-  if(p == 0)
-	return 0;
+    if(p == 0){
+        release(&ptable.lock);
+        return 0;
+    }
 
-  acquire(&ptable.lock);
+  //acquire(&ptable.lock);
 
   p->state = EMBRYO;
   p->pid = nextpid++;
@@ -193,7 +201,11 @@ allocproc(void)
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
-    return 0;
+  //acquire(&ptable.lock);
+AddFreeList(p);
+  //release(&ptable.lock);
+
+   return 0;
   }
   sp = p->kstack + KSTACKSIZE;
   
@@ -222,15 +234,20 @@ userinit(void)
   struct proc* p;
 
   ptable.pFreeList=0;
-  
+ptable.pReadyList[0]=0;
+ptable.pReadyList[1]=0;
+ptable.pReadyList[2]=0;
 
 
 acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+{
     if(p->state == UNUSED)
       {
 	AddFreeList(p); //send unused process to free table to be added
 	}
+
+}
   release(&ptable.lock);
 
   //struct proc *p;
@@ -303,6 +320,9 @@ fork(void)
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
+  acquire(&ptable.lock);
+  AddFreeList(np);
+  release(&ptable.lock);
     return -1;
   }
   np->sz = proc->sz;
@@ -312,7 +332,7 @@ fork(void)
 ///allocating uid and gid
   np->uid = proc->uid;
   np->gid = proc->gid;
-  np->priority = proc->priority;
+  np->priority = 1;
 
 
   // Clear %eax so that fork returns 0 in the child.
@@ -330,7 +350,7 @@ fork(void)
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
-  AddReadyList(np);
+    AddReadyList(np);
   release(&ptable.lock);
   
   return pid;
@@ -404,6 +424,7 @@ wait(void)
         p->kstack = 0;
         freevm(p->pgdir);
         p->state = UNUSED;
+  AddFreeList(p);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
@@ -443,22 +464,29 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
+    //for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      //if(p->state != RUNNABLE)
+        //continue;
+//struct proc * check=GetReady();
+while(ptable.pReadyList[0] || ptable.pReadyList[1] || ptable.pReadyList[2]){
+	p=GetReady();
+      //for (p = GetReady(); p != 0; p = GetReady()){
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
+    
       switchuvm(p);
       p->state = RUNNING;
-      RemoveReadyList(p);
+    RemoveReadyList(p);
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
-
+//RemoveReadyList(p);
       // Process is done running for now.
       // It should have changed its p->state before coming back.
+    
+    
+    //RemoveReadyList(p);
       proc = 0;
     }
     release(&ptable.lock);
@@ -492,8 +520,9 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
-  sched();
   AddReadyList(proc);
+  sched();
+  //AddReadyList(proc);
   release(&ptable.lock);
 }
 
@@ -564,10 +593,10 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+      if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-
-
+          AddReadyList(p);
+      }
 
 }
 
@@ -594,6 +623,10 @@ kill(int pid)
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
+      {
+          p->state = RUNNABLE;
+          AddReadyList(p);
+      }
       release(&ptable.lock);
       return 0;
     }

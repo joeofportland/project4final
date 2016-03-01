@@ -25,3 +25,26 @@ target remote localhost:1234
 
 echo + symbol-file kernel\n
 symbol-file kernel
+
+define plist
+  set var $n = ptable->pReadyList[0]
+  while $n
+    printf "Queue0 %s PID %d\n", $n.name, $n.pid
+    set var $n = $n->next
+  end
+  set var $n = ptable->pReadyList[1]
+  while $n
+    printf "Queue1 %s PID %d\n", $n.name, $n.pid
+    set var $n = $n->next
+  end
+  set var $n = ptable->pReadyList[2]
+  while $n
+    printf "Queue2 %s PID %d\n", $n.name, $n.pid
+    set var $n = $n->next
+  end
+end
+
+
+define adder
+       print $arg0 + $arg1 + $arg2
+     end
