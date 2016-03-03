@@ -32,6 +32,7 @@ int sleep(int);
 int uptime(void);
 int date(struct rtcdate *);
 int timem(void);
+int setpriority(int pid, int priority);
 
 // ulib.c
 int stat(char*, struct stat*);

@@ -1,7 +1,7 @@
 00000000 .text
-00000911 .rodata
-00000940 .eh_frame
-00000ba4 .data
+00000919 .rodata
+00000948 .eh_frame
+00000bac .data
 00000bc0 .bss
 00000000 .comment
 00000000 .debug_aranges
@@ -14,24 +14,25 @@
 00000000 ulib.c
 0000011d stosb
 00000000 printf.c
-00000465 putc
-0000048d printint
-00000ba4 digits.1048
+0000046d putc
+00000495 printint
+00000bac digits.1051
 00000000 umalloc.c
 00000bc0 base
 00000bc8 freep
-000007d9 morecore
+000007e1 morecore
 00000000 
 00000142 strcpy
 0000043d getgid
-00000545 printf
+0000054d printf
 00000340 memmove
 000003cd mknod
+00000465 setpriority
 0000022f gets
 00000405 getpid
 00000000 cat
 00000435 getuid
-00000831 malloc
+00000839 malloc
 00000415 sleep
 0000042d timem
 00000395 pipe
@@ -47,7 +48,7 @@
 0000037d fork
 0000040d sbrk
 0000041d uptime
-00000bb5 __bss_start
+00000bbd __bss_start
 000001d8 memset
 00000068 main
 00000445 getppid
@@ -56,7 +57,7 @@
 0000045d getprocs
 00000be0 buf
 000002a5 stat
-00000bb5 _edata
+00000bbd _edata
 00000de0 _end
 00000425 date
 000003e5 link
@@ -68,4 +69,4 @@
 0000044d setuid
 000003ed mkdir
 000003ad close
-000006f8 free
+00000700 free

@@ -7,8 +7,8 @@
 void
 printTableEntry(struct uproc* t)
 {
-  printf(2, "pid: %d, name: %s\n      uid: %d  gid: %d   ppid: %d  state: %s  size: %d\n",
-        t->pid, t->name, t->uid, t->gid, t->ppid,
+  printf(2, "pid: %d, priority: %d, name: %s\n      uid: %d  gid: %d   ppid: %d  state: %s  size: %d\n",
+        t->pid,t->priority, t->name, t->uid, t->gid, t->ppid,
         t->state, t->size);
   return;
 }

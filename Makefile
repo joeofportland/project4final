@@ -180,6 +180,8 @@ UPROGS=\
 	_setgid\
 	_setuid\
 	_ps\
+	_testSched\
+
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

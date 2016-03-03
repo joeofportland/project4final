@@ -7,15 +7,106 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#define MaxTimeToReset 100
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
   struct proc *pReadyList[3];
   struct proc *pFreeList;
+  uint TimeToReset;
 } ptable;
 
 
+
+int setpriority(int pid, int priority)
+{
+struct proc* p;
+//change priority of all runnable, running and sleeping processes to 1
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+{
+    if(p->pid == pid)
+      {
+	p->priority=priority;
+	return 0;
+      }
+
+}
+  return 0;
+}
+
+
+
 ////ADD TO FREE LIST
+int
+ResetPriority()
+{
+
+  struct proc* p;
+//change priority of all runnable, running and sleeping processes to 1
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+{
+    //if(p->state == RUNNING || p->state == SLEEPING)
+      //{
+	p->priority=1;
+      //}
+
+}
+
+
+ //if there is anything in ReadyList at priority 0// add to list 1
+  if(ptable.pReadyList[0]!=0)
+  {
+	//if ReadyList at 1 is empty
+	if(ptable.pReadyList[1]==0)
+	{
+	ptable.pReadyList[1]=ptable.pReadyList[0];
+	}
+	//there is something already in ReadyList at 1, traverse to end of 1 and add list 0 components
+  	else
+  	{
+	struct proc * temp = ptable.pReadyList[1];
+
+	while(temp->next !=0)
+	temp=temp->next;
+
+	temp->next=ptable.pReadyList[0];
+         
+  	}
+
+ ptable.pReadyList[0]=0;
+  }
+
+////now the only scenario left at this point is there is a list in priority 2 or there is not
+
+ //if there is anything in list 2, add it to list 1
+ if(ptable.pReadyList[2]!=0)
+  {
+//if ReadyList at 1 is empty
+	if(ptable.pReadyList[1]==0)
+	{
+	ptable.pReadyList[1]=ptable.pReadyList[2];
+	}
+	//there is something already in ReadyList at 1, traverse to end of 1 and add list 2 components
+  	else
+  	{
+	struct proc * temp2 = ptable.pReadyList[1];
+
+	while(temp2->next !=0)
+	temp2=temp2->next;
+
+	temp2->next=ptable.pReadyList[2];
+
+	
+  	}
+ ptable.pReadyList[2]=0;
+  }
+
+
+return 0;
+}
+
+
 int
 AddFreeList(struct proc * toadd)
 {
@@ -469,6 +560,19 @@ scheduler(void)
         //continue;
 //struct proc * check=GetReady();
 while(ptable.pReadyList[0] || ptable.pReadyList[1] || ptable.pReadyList[2]){
+
+//ResetPriority();
+
+//reset priority
+if(ptable.TimeToReset==0)
+{
+ResetPriority();
+ptable.TimeToReset=MaxTimeToReset;
+}
+else
+{
+ptable.TimeToReset=ptable.TimeToReset-1;
+}
 	p=GetReady();
       //for (p = GetReady(); p != 0; p = GetReady()){
       // Switch to chosen process.  It is the process's job
@@ -674,54 +778,55 @@ procdump(void)
 
 
 int
-getProcInfo(int max,struct uproc *table)
+getProcInfo(int count, struct uproc* table)
 {
-struct proc *p;
 
-int numproc=0;
-for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  static char *states[] = {
+  [UNUSED]    "UNUSED ",
+  [EMBRYO]    "EMBRYO ",
+  [SLEEPING]  "SLEEP  ",
+  [RUNNABLE]  "READY  ",
+  [RUNNING]   "RUNNING",
+  [ZOMBIE]    "ZOMBIE "
+  };
+
+  int i = 0;
+  struct proc *p;
+
+  // go over all elements in process table  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    // skip over UNUSED processes
     if(p->state == UNUSED)
       continue;
-numproc++;
-}
+    
+    table[i].pid = p->pid;		// PID
+    table[i].uid = p->uid;		// UID
+    table[i].gid = p->gid;		// GID
+    table[i].ppid = (p->pid == 1)? -1 : p->parent->pid;	// Parent PID -- -1 for init since it does not have any parent
+    table[i].size = p->sz;		// size
+    table[i].priority = p->priority;
 
+    // copy name 
+    int si = 0;
+    do {
+      table[i].name[si] = p->name[si];
+      si++;
+    } while (p->name[si] != '\0');
+  
+    si = 0; 
+    // copy state    
+    do {
+      table[i].state[si] = states[(int)(p->state)][si];
+      si++;
+    } while (states[(int)(p->state)][si] != '\0');
 
+    i++;
+  }
 
-int i=numproc;
-int l=0;
-while(l < i)
-{
+  // if number of processes > MAX requested by user
+  if (i > count)
+    return -1;
 
-int z=0;
-int sn=sizeof(ptable.proc[l].name);
-while(z < sn)
-{
-table[l].name[z]=ptable.proc[l].name[z];
-//table[l].state[z]=ptable.proc[l].name[z];
-z++;
-}
-char *statelist[] = {"UNUSED  ","EMBRYO  ","SLEEPING","RUNNABLE","RUNNING ","ZOMBIE  "};
-
-int s=(int) ptable.proc[l].state;
-//int ssize=sizeof(*statelist[s]);
-int ssize=8;
-int ss=0;
-while(ss < ssize)
-{
-table[l].state[ss]=statelist[s][ss];
-ss++;
-}
-
-
-table[l].pid = ptable.proc[l].pid;
-table[l].uid = ptable.proc[l].uid;
-table[l].gid = ptable.proc[l].gid;
-table[l].ppid = ptable.proc[l].parent->pid;
-table[l].size = ptable.proc[l].sz;
-
-
-l++;
-}
-
-return i;
+  return i;
 }

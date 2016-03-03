@@ -39,7 +39,7 @@ forktest(void)
   int n, pid;
 
   printf(1, "fork test\n");
-  2f:	c7 44 24 04 60 04 00 	movl   $0x460,0x4(%esp)
+  2f:	c7 44 24 04 68 04 00 	movl   $0x468,0x4(%esp)
   36:	00 
   37:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
   3e:	e8 bd ff ff ff       	call   0 <printf>
@@ -80,7 +80,7 @@ forktest(void)
     printf(1, "fork claimed to work N times!\n", N);
   7d:	c7 44 24 08 e8 03 00 	movl   $0x3e8,0x8(%esp)
   84:	00 
-  85:	c7 44 24 04 6c 04 00 	movl   $0x46c,0x4(%esp)
+  85:	c7 44 24 04 74 04 00 	movl   $0x474,0x4(%esp)
   8c:	00 
   8d:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
   94:	e8 67 ff ff ff       	call   0 <printf>
@@ -95,7 +95,7 @@ forktest(void)
   a5:	85 c0                	test   %eax,%eax
   a7:	79 19                	jns    c2 <forktest+0x99>
       printf(1, "wait stopped early\n");
-  a9:	c7 44 24 04 8b 04 00 	movl   $0x48b,0x4(%esp)
+  a9:	c7 44 24 04 93 04 00 	movl   $0x493,0x4(%esp)
   b0:	00 
   b1:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
   b8:	e8 43 ff ff ff       	call   0 <printf>
@@ -120,7 +120,7 @@ forktest(void)
   d1:	83 f8 ff             	cmp    $0xffffffff,%eax
   d4:	74 19                	je     ef <forktest+0xc6>
     printf(1, "wait got too many\n");
-  d6:	c7 44 24 04 9f 04 00 	movl   $0x49f,0x4(%esp)
+  d6:	c7 44 24 04 a7 04 00 	movl   $0x4a7,0x4(%esp)
   dd:	00 
   de:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
   e5:	e8 16 ff ff ff       	call   0 <printf>
@@ -129,7 +129,7 @@ forktest(void)
   }
   
   printf(1, "fork test OK\n");
-  ef:	c7 44 24 04 b2 04 00 	movl   $0x4b2,0x4(%esp)
+  ef:	c7 44 24 04 ba 04 00 	movl   $0x4ba,0x4(%esp)
   f6:	00 
   f7:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
   fe:	e8 fd fe ff ff       	call   0 <printf>
@@ -731,3 +731,9 @@ SYSCALL(getprocs)
  455:	b8 1d 00 00 00       	mov    $0x1d,%eax
  45a:	cd 40                	int    $0x40
  45c:	c3                   	ret    
+
+0000045d <setpriority>:
+SYSCALL(setpriority)
+ 45d:	b8 1e 00 00 00       	mov    $0x1e,%eax
+ 462:	cd 40                	int    $0x40
+ 464:	c3                   	ret    
