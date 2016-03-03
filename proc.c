@@ -18,7 +18,7 @@ struct {
 } ptable;
 
 
-
+////SET PRIORITY MANUALLY
 int setpriority(int pid, int priority)
 {
 struct proc* p;
@@ -37,7 +37,7 @@ struct proc* p;
 
 
 
-////ADD TO FREE LIST
+////RESET PRIORITY QUEUE
 int
 ResetPriority()
 {
@@ -106,7 +106,7 @@ ResetPriority()
 return 0;
 }
 
-
+////ADD TO FREE LIST
 int
 AddFreeList(struct proc * toadd)
 {
@@ -179,7 +179,6 @@ temp=temp->next;
 toadd->next=0;
 temp->next=toadd;
 
-//ptable.pReadyList[priority]=temp;
 return 0;
 }
 
@@ -226,20 +225,18 @@ return 0;
 ////give scheduleer next proccess to run
 struct proc* GetReady()
 {
-
 //if(ptable.pReadyList[0]==0 && ptable.pReadyList[1]==0 && ptable.pReadyList[2]==0)
 //return ptable.pReadyList[0];
-
 int p=0;
 for(p = 0;p < 3; p++){
-    if(ptable.pReadyList[p]!=0)
-        return ptable.pReadyList[p];
+if(ptable.pReadyList[p]!=0)
+{
+return ptable.pReadyList[p];
+}
 }
 
 return 0;
 }
-
-
 /////
 
 
@@ -280,12 +277,9 @@ allocproc(void)
         return 0;
     }
 
-  //acquire(&ptable.lock);
 
   p->state = EMBRYO;
   p->pid = nextpid++;
-  //p->gid = nextpid; 
-  //p->uid = nextpid;
 
   release(&ptable.lock);
 
@@ -515,7 +509,7 @@ wait(void)
         p->kstack = 0;
         freevm(p->pgdir);
         p->state = UNUSED;
-  AddFreeList(p);
+        AddFreeList(p);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
@@ -555,13 +549,10 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    //for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      //if(p->state != RUNNABLE)
-        //continue;
-//struct proc * check=GetReady();
+
 while(ptable.pReadyList[0] || ptable.pReadyList[1] || ptable.pReadyList[2]){
 
-//ResetPriority();
+
 
 //reset priority
 if(ptable.TimeToReset==0)
@@ -585,7 +576,6 @@ ptable.TimeToReset=ptable.TimeToReset-1;
     RemoveReadyList(p);
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
-//RemoveReadyList(p);
       // Process is done running for now.
       // It should have changed its p->state before coming back.
     
@@ -626,7 +616,6 @@ yield(void)
   proc->state = RUNNABLE;
   AddReadyList(proc);
   sched();
-  //AddReadyList(proc);
   release(&ptable.lock);
 }
 
@@ -766,7 +755,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %d %d %s %s", p->pid, p->uid, p->gid, state, p->name);
+    cprintf("%d %d %d %d %s %s", p->pid, p->priority, p->uid, p->gid, state, p->name);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
@@ -778,7 +767,7 @@ procdump(void)
 
 
 int
-getProcInfo(int count, struct uproc* table)
+getProcInfo(int max, struct uproc* table)
 {
 
   static char *states[] = {
@@ -793,40 +782,41 @@ getProcInfo(int count, struct uproc* table)
   int i = 0;
   struct proc *p;
 
-  // go over all elements in process table  
+  //loop proccess table
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    // skip over UNUSED processes
     if(p->state == UNUSED)
       continue;
     
-    table[i].pid = p->pid;		// PID
-    table[i].uid = p->uid;		// UID
-    table[i].gid = p->gid;		// GID
-    table[i].ppid = (p->pid == 1)? -1 : p->parent->pid;	// Parent PID -- -1 for init since it does not have any parent
-    table[i].size = p->sz;		// size
+    table[i].pid = p->pid;
+    table[i].uid = p->uid;
+    table[i].gid = p->gid;
+    table[i].ppid = p->parent->pid;
+    table[i].size = p->sz;
     table[i].priority = p->priority;
-
-    // copy name 
-    int si = 0;
-    do {
-      table[i].name[si] = p->name[si];
-      si++;
-    } while (p->name[si] != '\0');
+    //string copy
+    int c = 0;
+    while (p->name[c] != '\0')
+    {
+        table[i].name[c] = p->name[c];
+        c++;
+    }
   
-    si = 0; 
-    // copy state    
-    do {
-      table[i].state[si] = states[(int)(p->state)][si];
-      si++;
-    } while (states[(int)(p->state)][si] != '\0');
+    c = 0;
+    //string copy
+      while (states[(int)(p->state)][c] != '\0'){
+      table[i].state[c] = states[(int)(p->state)][c];
+      c++;
+    }
 
     i++;
   }
 
-  // if number of processes > MAX requested by user
-  if (i > count)
-    return -1;
+  //number of processes max check
+    if (i > max)
+    {
+        return -1;
+    }
 
   return i;
 }

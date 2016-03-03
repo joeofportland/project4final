@@ -27,17 +27,17 @@ echo + symbol-file kernel\n
 symbol-file kernel
 
 define plist
-  set var $n = ptable->pReadyList[0]
+  set var $n = ptable->pFreeList
   while $n
     printf "Queue0 %s PID %d\n", $n.name, $n.pid
     set var $n = $n->next
   end
-  set var $n = ptable->pReadyList[1]
+  set var $n = ptable->pFreeList
   while $n
     printf "Queue1 %s PID %d\n", $n.name, $n.pid
     set var $n = $n->next
   end
-  set var $n = ptable->pReadyList[2]
+  set var $n = ptable->pFreeList
   while $n
     printf "Queue2 %s PID %d\n", $n.name, $n.pid
     set var $n = $n->next

@@ -111,8 +111,7 @@ return 0;
 int
 sys_getuid(void)
 {
-	//int newid=5;
-//proc->uid=newid;
+
   return proc->uid;
 
 }
@@ -155,7 +154,18 @@ return 0;
 int
 sys_getprocs(void)
 {
-int max;struct uproc *table;if (argint(0, (void*)&max) < 0) {return -1;}if (argptr(1, (void*)&table, sizeof(*table)) < 0) {return -1;}//return 0;return getProcInfo(max, table);
+int max;
+struct uproc *table;
+
+if (argint(0, (void*)&max) < 0) {
+return -1;
+}
+
+if (argptr(1, (void*)&table, sizeof(*table)) < 0) {
+return -1;
+}
+
+return getProcInfo(max, table);
 }
 
 
